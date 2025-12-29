@@ -30,6 +30,10 @@ export const metadata: Metadata = {
     creator: "@freshly_mulched",
   },
   robots: "index, follow",
+};
+
+// Move themeColor here
+export const viewport = {
   themeColor: "#0f172a",
 };
 
