@@ -6,7 +6,10 @@ import { join } from "path";
 export const runtime = "nodejs";
 export const revalidate = 60;
 
-export async function GET() {
+export async function GET(req: Request) {
+    const url = new URL(req.url);
+    const ts = url.searchParams.get("ts") || Date.now().toString();
+    console.log("Generating OG image with timestamp:", ts);
     try {
         const moodSummary = await getMoodSummary();
 
