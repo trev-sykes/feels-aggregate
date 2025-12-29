@@ -1,4 +1,4 @@
-"use client"
+"use client";
 import { useState, useEffect } from "react";
 import { type HeatmapData } from "./components/HeatMap";
 import Heatmap from "./components/HeatMap";
@@ -7,7 +7,11 @@ import EmotionButtons from "./components/EmotionButtons";
 export default function HomePageClient() {
     const [message, setMessage] = useState("");
     const [heatmapData, setHeatmapData] = useState<HeatmapData | null>(null);
+    const [selected, setSelected] = useState<string | null>(null);
+    const [voted, setVoted] = useState(false);
+    const [loadingVote, setLoadingVote] = useState(true);
 
+    // Fetch heatmap every minute
     const fetchHeatmap = async () => {
         try {
             const res = await fetch("/api/heatmap");
@@ -24,12 +28,34 @@ export default function HomePageClient() {
         return () => clearInterval(interval);
     }, []);
 
+    // Fetch today's vote once on mount
+    useEffect(() => {
+        const fetchTodayVote = async () => {
+            try {
+                const res = await fetch("/api/me");
+                const data = await res.json();
+                if (data.emotion) {
+                    setSelected(data.emotion); // highlight the selected button
+                    setVoted(true);            // disable all buttons
+                }
+            } catch (err) {
+                console.error("Failed to fetch today's vote:", err);
+            } finally {
+                setLoadingVote(false);
+            }
+        };
+        fetchTodayVote();
+    }, []);
+
     const handleSubmit = async (emotion: string) => {
         if (!heatmapData) return;
-        const previousData = heatmapData;
+        if (voted) return;
 
+        const previousData = heatmapData;
         const currentHour = new Date().getUTCHours().toString();
-        const newHeatmap = {
+
+        // Optimistic UI update
+        setHeatmapData({
             ...heatmapData,
             hourly: {
                 ...heatmapData.hourly,
@@ -38,9 +64,7 @@ export default function HomePageClient() {
                     [emotion]: (heatmapData.hourly[currentHour][emotion] ?? 0) + 1,
                 },
             },
-        };
-        setHeatmapData(newHeatmap);
-
+        });
         setMessage("Thanks for sharing! Your vote helps map global emotions.");
 
         try {
@@ -53,9 +77,14 @@ export default function HomePageClient() {
 
             if (!result.ok) {
                 setHeatmapData(previousData);
-                setMessage(result.error === "ALREADY_VOTED"
-                    ? "You already voted today!"
-                    : "Something went wrong, try again.");
+                setMessage(
+                    result.error === "ALREADY_VOTED"
+                        ? "You already voted today!"
+                        : "Something went wrong, try again."
+                );
+            } else {
+                setSelected(emotion);
+                setVoted(true);
             }
         } catch (err) {
             console.error(err);
@@ -72,12 +101,16 @@ export default function HomePageClient() {
                         <img src="/logo.png" alt="Feels Aggregate" className="h-8" />
                     </div>
                     <div className="text-sm text-white/50">
-                        {new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                        {new Date().toLocaleDateString("en-US", {
+                            month: "short",
+                            day: "numeric",
+                            year: "numeric",
+                        })}
                     </div>
                 </div>
             </header>
 
-            {/* Voting Section - Reduced padding on mobile */}
+            {/* Voting Section */}
             <div className="max-w-6xl mx-auto px-4">
                 <section className="py-8 md:py-12 text-center space-y-6">
                     <div className="space-y-3">
@@ -88,21 +121,20 @@ export default function HomePageClient() {
                             One anonymous vote. See how the world feels today.
                         </p>
                     </div>
-                    <EmotionButtons onSubmit={handleSubmit} />
-                    {/* {message && (
-                        <p className="text-sm text-white/50 animate-fade-in max-w-md mx-auto">
-                            {message}
-                        </p>
-                    )} */}
+                    <EmotionButtons
+                        onSubmit={handleSubmit}
+                        selected={selected}
+                        voted={voted}
+                        loading={loadingVote}
+                    />
                 </section>
             </div>
 
-            {/* Heatmap Section - Tighter on mobile, no top border gap */}
+            {/* Heatmap Section */}
             <section className="border-t border-white/10">
                 <div className="w-full">
                     <div className="px-4 sm:px-0">
                         <div className="max-w-6xl mx-auto">
-                            {/* Reduced internal top padding via negative margin trick + responsive control */}
                             <div className="-mt-2 sm:mt-0 pt-6 sm:pt-12 pb-8 sm:pb-12">
                                 <Heatmap data={heatmapData} />
                             </div>
@@ -111,7 +143,7 @@ export default function HomePageClient() {
                 </div>
             </section>
 
-            {/* Footer - Less aggressive margin */}
+            {/* Footer */}
             <div className="max-w-6xl mx-auto px-4">
                 <footer className="border-t border-white/10 py-8 mt-8 sm:mt-12 text-center text-sm text-white/30">
                     <p>Anonymous. No tracking. One vote per day.</p>

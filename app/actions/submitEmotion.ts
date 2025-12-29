@@ -21,8 +21,8 @@ export async function submitEmotion(
     const userAgent = h.get("user-agent") ?? "unknown";
 
     const { day, hour } = getUtcDayAndHour();
-    const fakeIp = "192.168.0." + Math.floor(Math.random() * 255);
-    const identityHash = createIdentityHash(fakeIp, userAgent, day);
+
+    const identityHash = createIdentityHash(ip, userAgent, day);
 
     try {
         await prisma.$transaction(async (tx) => {
