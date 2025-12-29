@@ -1,4 +1,3 @@
-"use client";
 import { useEffect, useState } from "react";
 
 type HeatmapData = {
@@ -7,39 +6,24 @@ type HeatmapData = {
 };
 
 const emotionConfig = {
-    happy: { color: '#fbbf24', icon: '😊', gradient: 'from-yellow-400 to-amber-500' },
-    content: { color: '#60a5fa', icon: '😌', gradient: 'from-blue-400 to-blue-600' },
-    neutral: { color: '#9ca3af', icon: '😐', gradient: 'from-gray-400 to-gray-600' },
-    stressed: { color: '#fb923c', icon: '😰', gradient: 'from-orange-400 to-orange-600' },
-    sad: { color: '#a78bfa', icon: '😢', gradient: 'from-purple-400 to-purple-600' },
-    angry: { color: '#f87171', icon: '😠', gradient: 'from-red-400 to-red-600' }
+    happy: { color: "#fbbf24", emoji: "😊", label: "Happy" },
+    content: { color: "#60a5fa", emoji: "😌", label: "Content" },
+    neutral: { color: "#9ca3af", emoji: "😐", label: "Neutral" },
+    stressed: { color: "#fb923c", emoji: "😰", label: "Stressed" },
+    sad: { color: "#a78bfa", emoji: "😢", label: "Sad" },
+    angry: { color: "#f87171", emoji: "😠", label: "Angry" },
 };
-
-const getIntensity = (value: number, max: number) => (max === 0 ? 0 : value / max);
-
 
 export default function Heatmap() {
     const [data, setData] = useState<HeatmapData | null>(null);
     const [loading, setLoading] = useState(true);
-    const [selectedEmotion, setSelectedEmotion] = useState<string | null>(null);
-    const [activeCell, setActiveCell] = useState<{ hour: string; emotion: string } | null>(null);
-    const [currentHour, setCurrentHour] = useState<number>(new Date().getUTCHours());
-
-    useEffect(() => {
-        const updateHour = () => setCurrentHour(new Date().getUTCHours());
-
-        updateHour(); // initial
-        const interval = setInterval(updateHour, 60_000);
-
-        return () => clearInterval(interval);
-    }, []);
+    const [hoveredHour, setHoveredHour] = useState<number | null>(null);
 
     const fetchHeatmap = async () => {
         setLoading(true);
         try {
             const res = await fetch("/api/heatmap");
             const json = await res.json();
-            console.log(json);
             setData(json);
         } finally {
             setLoading(false);
@@ -55,10 +39,7 @@ export default function Heatmap() {
     if (loading || !data) {
         return (
             <div className="flex items-center justify-center py-12">
-                <div className="text-center">
-                    <div className="inline-block animate-spin rounded-full h-12 w-12 border-t-4 border-b-4 border-blue-500 mb-4"></div>
-                    <p className="text-gray-400">Loading emotion data...</p>
-                </div>
+                <div className="h-8 w-8 border-2 border-white/20 border-t-white rounded-full animate-spin" />
             </div>
         );
     }
@@ -66,159 +47,168 @@ export default function Heatmap() {
     const emotions = Object.keys(emotionConfig);
     const hours = Object.keys(data.hourly).sort((a, b) => Number(a) - Number(b));
 
-    const maxValue = Math.max(
-        ...hours.flatMap(hour => emotions.map(emotion => data.hourly[hour][emotion] ?? 0))
-    );
-
     const totalByEmotion = emotions
-        .map(emotion => ({
+        .map((emotion) => ({
             emotion,
-            total: hours.reduce((sum, hour) => sum + (data.hourly[hour][emotion] ?? 0), 0)
+            total: hours.reduce(
+                (sum, hour) => sum + (data.hourly[hour][emotion] ?? 0),
+                0
+            ),
         }))
         .sort((a, b) => b.total - a.total);
 
     const grandTotal = totalByEmotion.reduce((sum, e) => sum + e.total, 0);
+    const dominant = totalByEmotion[0];
+    const dominantConfig = emotionConfig[dominant.emotion as keyof typeof emotionConfig];
+    const dominantPercent = Math.round((dominant.total / grandTotal) * 100);
+
+    const currentHour = new Date().getUTCHours();
 
     return (
-        <div className="space-y-8">
-            {/* Header */}
-            <div className="text-center">
-                <h2 className="text-3xl sm:text-4xl font-bold mb-2">
-                    Emotion Timeline
+        <div className="space-y-12">
+            {/* Header - Big emotional statement */}
+            <div className="text-center space-y-4">
+                <div className="text-7xl sm:text-8xl animate-pulse">{dominantConfig.emoji}</div>
+                <h2 className="text-3xl sm:text-4xl font-bold">
+                    The world feels{" "}
+                    <span style={{ color: dominantConfig.color }}>
+                        {dominant.emotion}
+                    </span>
                 </h2>
-                <p className="text-gray-400">
-                    {data.day} • {grandTotal.toLocaleString()} total reports
+                <p className="text-white/50">
+                    {dominantPercent}% of {grandTotal.toLocaleString()} people today
                 </p>
             </div>
 
-            {/* Emotion Filter */}
-            <div className="flex flex-wrap justify-center gap-2">
-                <button
-                    onClick={() => setSelectedEmotion(null)}
-                    className={`px-4 py-2 rounded-full font-medium transition-all duration-300 ${selectedEmotion === null
-                        ? 'bg-white text-slate-900 shadow-lg scale-105'
-                        : 'bg-slate-800 text-gray-300 hover:bg-slate-700'
-                        }`}
-                >
-                    All
-                </button>
-                {emotions.map(emotion => (
-                    <button
-                        key={emotion}
-                        onClick={() => setSelectedEmotion(selectedEmotion === emotion ? null : emotion)}
-                        className={`px-4 py-2 rounded-full font-medium transition-all duration-300 flex items-center gap-1 ${selectedEmotion === emotion
-                            ? 'shadow-lg scale-105'
-                            : 'bg-slate-800 hover:bg-slate-700'
-                            }`}
-                        style={{
-                            backgroundColor: selectedEmotion === emotion ? emotionConfig[emotion as keyof typeof emotionConfig].color : undefined,
-                            color: selectedEmotion === emotion ? '#000' : undefined
-                        }}
-                    >
-                        <span className="text-lg">{emotionConfig[emotion as keyof typeof emotionConfig].icon}</span>
-                        <span className="capitalize">{emotion}</span>
-                    </button>
-                ))}
-            </div>
+            {/* Emotion Flow - Horizontal timeline */}
+            <div className="space-y-6">
+                <h3 className="text-center text-lg text-white/70">
+                    Today's emotional journey
+                </h3>
 
-            {/* Heatmap */}
-            <div className="overflow-x-auto pb-4">
-                <div className="flex gap-2 min-w-max px-4">
-                    {hours.map(hour => {
-                        const hourNum = Number(hour);
-                        const displayEmotions = selectedEmotion ? [selectedEmotion] : emotions;
-                        const isCurrentHour = hourNum === currentHour;
+                {/* The actual full-width timeline */}
+                <div className="relative">
+                    <div className="flex h-32 sm:h-40 rounded-lg overflow-hidden border border-white/10 shadow-xl">
+                        {hours.map((hour) => {
+                            const hourNum = Number(hour);
+                            const isCurrent = hourNum === currentHour;
+                            const isHovered = hoveredHour === hourNum;
 
+                            const emotionData = emotions.map((emotion) => ({
+                                emotion,
+                                count: data.hourly[hour][emotion] ?? 0,
+                            }));
 
-                        return (
-                            <div key={hour} className="flex flex-col items-center gap-1">
-                                <div className="text-xs font-medium text-gray-400">{hour.padStart(2, '0')}</div>
+                            const hourTotal = emotionData.reduce((sum, e) => sum + e.count, 0);
 
+                            return (
                                 <div
-                                    className={`w-10 h-48 rounded-lg overflow-hidden flex flex-col-reverse relative group transition-all duration-300
-                                            ${isCurrentHour
-                                            ? 'ring-2 ring-emerald-400 shadow-[0_0_20px_rgba(52,211,153,0.6)]'
-                                            : 'hover:ring-2 hover:ring-blue-500/50'
-                                        }
-                                        `}
+                                    key={hour}
+                                    className="flex-1 relative flex flex-col-reverse group cursor-pointer"
+                                    onMouseEnter={() => setHoveredHour(hourNum)}
+                                    onMouseLeave={() => setHoveredHour(null)}
                                 >
-                                    {displayEmotions.map(emotion => {
-                                        const value = data.hourly[hour][emotion] ?? 0;
-                                        const intensity = getIntensity(value, maxValue);
+                                    {isCurrent && (
+                                        <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-full z-10">
+                                            <div className="text-xs text-white/60 font-medium whitespace-nowrap mb-1">
+                                                now
+                                            </div>
+                                            <div className="w-px h-3 bg-white/60 mx-auto" />
+                                        </div>
+                                    )}
+
+                                    {/* Stacked bars */}
+                                    {emotionData.map(({ emotion, count }) => {
+                                        if (count === 0) return null;
                                         const config = emotionConfig[emotion as keyof typeof emotionConfig];
+                                        const heightPercent = hourTotal > 0 ? (count / hourTotal) * 100 : 0;
 
                                         return (
                                             <div
-                                                key={`${hour}-${emotion}`}
-                                                className="transition-all duration-500 cursor-pointer hover:brightness-110"
+                                                key={emotion}
+                                                className="transition-all duration-300"
                                                 style={{
-                                                    height: `${(value / emotions.length / maxValue) * 100}%`,
+                                                    height: `${heightPercent}%`,
                                                     backgroundColor: config.color,
-                                                    opacity: 0.7 + intensity * 0.3,
-                                                    boxShadow: `0 0 10px ${config.color}40`
+                                                    opacity: isHovered ? 1 : 0.85,
                                                 }}
-                                                onClick={() => setActiveCell(activeCell?.hour === hour && activeCell?.emotion === emotion ? null : { hour, emotion })}
                                             />
                                         );
                                     })}
 
-                                    {activeCell?.hour === hour && activeCell?.emotion && (
-                                        <div className="absolute inset-0 flex items-center justify-center animate-pulse">
-                                            <span className="text-2xl">
-                                                {emotionConfig[activeCell.emotion as keyof typeof emotionConfig].icon}
-                                            </span>
+                                    {/* Tooltip */}
+                                    {isHovered && hourTotal > 0 && (
+                                        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-black/95 text-white px-3 py-2 rounded-lg text-xs z-20 pointer-events-none whitespace-nowrap">
+                                            <div className="font-medium mb-1">{hour}:00</div>
+                                            {emotionData
+                                                .filter(e => e.count > 0)
+                                                .sort((a, b) => b.count - a.count)
+                                                .map(({ emotion, count }) => {
+                                                    const config = emotionConfig[emotion as keyof typeof emotionConfig];
+                                                    const percent = Math.round((count / hourTotal) * 100);
+                                                    return (
+                                                        <div key={emotion} className="flex items-center gap-1.5 text-[10px]">
+                                                            <span>{config.emoji}</span>
+                                                            <span className="capitalize">{emotion}</span>
+                                                            <span className="text-white/60">{percent}%</span>
+                                                        </div>
+                                                    );
+                                                })}
+                                            <div className="text-white/50 text-[10px] mt-1 pt-1 border-t border-white/20">
+                                                {hourTotal} total votes
+                                            </div>
                                         </div>
                                     )}
-                                </div>
 
-                                <div className="text-[10px] text-gray-400 mt-1 text-center">
-                                    {hourNum >= 5 && hourNum < 12 ? '🌅' :
-                                        hourNum >= 12 && hourNum < 17 ? '☀️' :
-                                            hourNum >= 17 && hourNum < 21 ? '🌆' : '🌙'}
+                                    {hourTotal === 0 && (
+                                        <div className="absolute inset-0 bg-white/5" />
+                                    )}
                                 </div>
-                            </div>
-                        );
-                    })}
+                            );
+                        })}
+                    </div>
+
+                    {/* Hour labels below */}
+                    <div className="flex justify-between mt-3 px-2 text-xs text-white/40">
+                        <span>Midnight</span>
+                        <span>Morning</span>
+                        <span>Noon</span>
+                        <span>Evening</span>
+                    </div>
                 </div>
             </div>
-
-            {/* Emotion Rankings */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {totalByEmotion.map((item, index) => {
-                    const percentage = Math.round((item.total / grandTotal) * 100);
+            {/* Legend - Top 3 emotions */}
+            <div className="grid grid-cols-3 gap-4 max-w-xl mx-auto">
+                {totalByEmotion.slice(0, 3).map((item, index) => {
                     const config = emotionConfig[item.emotion as keyof typeof emotionConfig];
+                    const percentage = Math.round((item.total / grandTotal) * 100);
 
                     return (
                         <div
                             key={item.emotion}
-                            className="bg-slate-900/50 backdrop-blur-xl rounded-2xl p-4 shadow-md border border-slate-800 hover:border-slate-700 transition-all duration-300 hover:scale-105"
-                            style={{ animationDelay: `${index * 100}ms` }}
+                            className="text-center space-y-2"
                         >
-                            <div className="flex items-center justify-between mb-2">
-                                <div className="flex items-center gap-2">
-                                    <div className="text-2xl">{config.icon}</div>
-                                    <div>
-                                        <h3 className="text-lg font-bold capitalize">{item.emotion}</h3>
-                                        <p className="text-gray-400 text-xs">Rank #{index + 1}</p>
-                                    </div>
-                                </div>
-                                <div className="text-right">
-                                    <div className="text-xl font-bold" style={{ color: config.color }}>
-                                        {item.total.toLocaleString()}
-                                    </div>
-                                    <div className="text-xs text-gray-400">{percentage}%</div>
-                                </div>
+                            <div className="text-3xl">{config.emoji}</div>
+                            <div className="text-sm font-medium capitalize">{item.emotion}</div>
+                            <div className="text-2xl font-bold" style={{ color: config.color }}>
+                                {percentage}%
                             </div>
+                        </div>
+                    );
+                })}
+            </div>
 
-                            <div className="h-3 bg-slate-800 rounded-full overflow-hidden">
-                                <div
-                                    className={`h-full bg-gradient-to-r ${config.gradient} rounded-full transition-all duration-1000 ease-out`}
-                                    style={{
-                                        width: `${percentage}%`,
-                                        boxShadow: `0 0 10px ${config.color}80`
-                                    }}
-                                />
-                            </div>
+            {/* Subtle legend - all emotions */}
+            <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-xs text-white/40">
+                {emotions.map((emotion) => {
+                    const config = emotionConfig[emotion as keyof typeof emotionConfig];
+                    return (
+                        <div key={emotion} className="flex items-center gap-1.5">
+                            <div
+                                className="w-2 h-2 rounded-full"
+                                style={{ backgroundColor: config.color }}
+                            />
+                            <span className="capitalize">{emotion}</span>
                         </div>
                     );
                 })}
