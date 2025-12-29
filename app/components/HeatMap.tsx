@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-type HeatmapData = {
+export type HeatmapData = {
     day?: string;
     hourly: Record<string, Record<string, number>>;
 };
@@ -14,29 +14,10 @@ const emotionConfig = {
     angry: { color: "#f87171", emoji: "😠", label: "Angry" },
 };
 
-export default function Heatmap() {
-    const [data, setData] = useState<HeatmapData | null>(null);
-    const [loading, setLoading] = useState(true);
+export default function Heatmap({ data }: { data: HeatmapData | null }) {
     const [hoveredHour, setHoveredHour] = useState<number | null>(null);
 
-    const fetchHeatmap = async () => {
-        setLoading(true);
-        try {
-            const res = await fetch("/api/heatmap");
-            const json = await res.json();
-            setData(json);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    useEffect(() => {
-        fetchHeatmap();
-        const interval = setInterval(fetchHeatmap, 60_000);
-        return () => clearInterval(interval);
-    }, []);
-
-    if (loading || !data) {
+    if (!data) {
         return (
             <div className="flex items-center justify-center py-12">
                 <div className="h-8 w-8 border-2 border-white/20 border-t-white rounded-full animate-spin" />

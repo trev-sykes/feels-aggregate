@@ -1,37 +1,74 @@
 "use client"
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { type HeatmapData } from "./components/HeatMap";
 import Heatmap from "./components/HeatMap";
 import EmotionButtons from "./components/EmotionButtons";
 
 export default function HomePageClient() {
     const [message, setMessage] = useState("");
     const [voted, setVoted] = useState(false);
+    const [heatmapData, setHeatmapData] = useState<HeatmapData | null>(null);
+
+    // Fetch initial heatmap
+    const fetchHeatmap = async () => {
+        try {
+            const res = await fetch("/api/heatmap");
+            const json = await res.json();
+            setHeatmapData(json);
+        } catch (err) {
+            console.error(err);
+        }
+    };
+
+    useEffect(() => {
+        fetchHeatmap();
+        const interval = setInterval(fetchHeatmap, 60_000);
+        return () => clearInterval(interval);
+    }, []);
 
     const handleSubmit = async (emotion: string) => {
+        if (!heatmapData) return;
+        const previousData = heatmapData;
+        // 1️⃣ Optimistically update heatmap
+        const currentHour = new Date().getUTCHours().toString();
+        const newHeatmap = {
+            ...heatmapData,
+            hourly: {
+                ...heatmapData.hourly,
+                [currentHour]: {
+                    ...heatmapData.hourly[currentHour],
+                    [emotion]: (heatmapData.hourly[currentHour][emotion] ?? 0) + 1,
+                },
+            },
+        };
+        setHeatmapData(newHeatmap);
+
+        // 2️⃣ Update UI
+        setMessage("Thanks for sharing! Your vote helps map global emotions.");
+        setVoted(true);
+
+        // 3️⃣ Send API request
         try {
             const res = await fetch("/api/submit", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ emotion }),
             });
-
             const result = await res.json();
 
-            if (result.ok) {
-                setMessage(`Thanks for sharing! Your vote helps map global emotions.`);
-                setVoted(true);
-            } else if (result.error === "ALREADY_VOTED") {
-                setMessage("You already voted today!");
-                setVoted(true);
-            } else {
-                setMessage("Something went wrong, try again.");
+            if (!result.ok) {
+                // If API fails, rollback optimistic update
+                setHeatmapData(heatmapData); // revert
+                setMessage(result.error === "ALREADY_VOTED"
+                    ? "You already voted today!"
+                    : "Something went wrong, try again.");
             }
         } catch (err) {
             console.error(err);
+            setHeatmapData(previousData); // revert
             setMessage("Network error, try again.");
         }
     };
-
     return (
         <main className="min-h-screen bg-black text-white">
             {/* Header (optional - you had one before, add back if needed) */}
@@ -74,7 +111,7 @@ export default function HomePageClient() {
                         <div className="px-4 sm:px-0">
                             {/* Center content on larger screens */}
                             <div className="max-w-6xl mx-auto">
-                                <Heatmap />
+                                <Heatmap data={heatmapData} />
                             </div>
                         </div>
                     </div>
