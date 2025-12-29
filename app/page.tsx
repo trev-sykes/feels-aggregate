@@ -34,7 +34,7 @@ export const metadata: Metadata = {
 
 // Move themeColor here
 export const viewport = {
-  themeColor: "#0f172a",
+  themeColor: "#fca327",
 };
 
 export default async function Page() {
