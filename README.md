@@ -45,7 +45,7 @@ The application uses two main models:
 
 1. Clone the repository
 ```bash
-git clone https://github.com/yourusername/feels-aggregate.git
+git clone https://github.com/trev-sykes/feels-aggregate.git
 cd feels-aggregate
 ```
 
