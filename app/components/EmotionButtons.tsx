@@ -42,22 +42,22 @@ export default function EmotionButtons({ onSubmit }: Props) {
                     onClick={() => handleClick(emotion)}
                     disabled={submitting || voted}
                     className={`
-            group relative overflow-hidden
-            px-3 py-4 rounded-lg
-            border transition-all duration-200
-            ${voted && selected === emotion
+                        group relative overflow-hidden
+                        px-2 py-2 sm:px-3 sm:py-4 rounded-lg
+                        border transition-all duration-200
+                        ${voted && selected === emotion
                             ? "border-white bg-white/10"
                             : voted
                                 ? "border-white/10 bg-transparent opacity-30"
                                 : "border-white/20 bg-transparent hover:border-white hover:bg-white/5"
                         }
-            disabled:cursor-not-allowed
-            active:scale-95
-          `}
+                        disabled:cursor-not-allowed
+                        active:scale-95
+                    `}
                 >
-                    <div className="flex flex-col items-center gap-1">
-                        <span className="text-3xl">{emoji}</span>
-                        <span className="text-xs font-medium capitalize">
+                    <div className="flex flex-col items-center gap-0.5 sm:gap-1">
+                        <span className="text-2xl sm:text-3xl">{emoji}</span>
+                        <span className="text-[10px] sm:text-xs font-medium capitalize">
                             {emotion}
                         </span>
                     </div>
@@ -65,4 +65,5 @@ export default function EmotionButtons({ onSubmit }: Props) {
             ))}
         </div>
     );
+
 }

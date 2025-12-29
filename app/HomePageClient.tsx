@@ -6,10 +6,8 @@ import EmotionButtons from "./components/EmotionButtons";
 
 export default function HomePageClient() {
     const [message, setMessage] = useState("");
-    const [voted, setVoted] = useState(false);
     const [heatmapData, setHeatmapData] = useState<HeatmapData | null>(null);
 
-    // Fetch initial heatmap
     const fetchHeatmap = async () => {
         try {
             const res = await fetch("/api/heatmap");
@@ -29,7 +27,7 @@ export default function HomePageClient() {
     const handleSubmit = async (emotion: string) => {
         if (!heatmapData) return;
         const previousData = heatmapData;
-        // 1️⃣ Optimistically update heatmap
+
         const currentHour = new Date().getUTCHours().toString();
         const newHeatmap = {
             ...heatmapData,
@@ -43,11 +41,8 @@ export default function HomePageClient() {
         };
         setHeatmapData(newHeatmap);
 
-        // 2️⃣ Update UI
         setMessage("Thanks for sharing! Your vote helps map global emotions.");
-        setVoted(true);
 
-        // 3️⃣ Send API request
         try {
             const res = await fetch("/api/submit", {
                 method: "POST",
@@ -57,21 +52,20 @@ export default function HomePageClient() {
             const result = await res.json();
 
             if (!result.ok) {
-                // If API fails, rollback optimistic update
-                setHeatmapData(heatmapData); // revert
+                setHeatmapData(previousData);
                 setMessage(result.error === "ALREADY_VOTED"
                     ? "You already voted today!"
                     : "Something went wrong, try again.");
             }
         } catch (err) {
             console.error(err);
-            setHeatmapData(previousData); // revert
+            setHeatmapData(previousData);
             setMessage("Network error, try again.");
         }
     };
+
     return (
         <main className="min-h-screen bg-black text-white">
-            {/* Header (optional - you had one before, add back if needed) */}
             <header className="border-b border-white/10">
                 <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
                     <div className="flex items-center gap-3">
@@ -82,35 +76,34 @@ export default function HomePageClient() {
                     </div>
                 </div>
             </header>
-            {/* Constrained hero section */}
+
+            {/* Voting Section - Reduced padding on mobile */}
             <div className="max-w-6xl mx-auto px-4">
-                <section className="py-12 text-center space-y-6">
-                    <div>
-                        <h1 className="text-3xl sm:text-4xl font-bold mb-2">
+                <section className="py-8 md:py-12 text-center space-y-6">
+                    <div className="space-y-3">
+                        <h1 className="text-3xl sm:text-4xl font-bold">
                             How do you feel right now?
                         </h1>
-                        <p className="text-white/50 text-sm">
+                        <p className="text-white/50 text-sm max-w-md mx-auto">
                             One anonymous vote. See how the world feels today.
                         </p>
                     </div>
                     <EmotionButtons onSubmit={handleSubmit} />
-                    {message && (
-                        <p className="text-sm text-white/50 animate-fade-in">
+                    {/* {message && (
+                        <p className="text-sm text-white/50 animate-fade-in max-w-md mx-auto">
                             {message}
                         </p>
-                    )}
+                    )} */}
                 </section>
             </div>
 
-            {/* FULL-BLEED HEATMAP SECTION - This is the magic */}
-            <section className="border-t border-white/10 py-12">
+            {/* Heatmap Section - Tighter on mobile, no top border gap */}
+            <section className="border-t border-white/10">
                 <div className="w-full">
-                    {/* Negative margin to break out on mobile, reset on sm+ */}
-                    <div className="-mx-4 sm:mx-0">
-                        {/* Re-add safe padding inside on mobile */}
-                        <div className="px-4 sm:px-0">
-                            {/* Center content on larger screens */}
-                            <div className="max-w-6xl mx-auto">
+                    <div className="px-4 sm:px-0">
+                        <div className="max-w-6xl mx-auto">
+                            {/* Reduced internal top padding via negative margin trick + responsive control */}
+                            <div className="-mt-2 sm:mt-0 pt-6 sm:pt-12 pb-8 sm:pb-12">
                                 <Heatmap data={heatmapData} />
                             </div>
                         </div>
@@ -118,9 +111,9 @@ export default function HomePageClient() {
                 </div>
             </section>
 
-            {/* Constrained footer */}
+            {/* Footer - Less aggressive margin */}
             <div className="max-w-6xl mx-auto px-4">
-                <footer className="border-t border-white/10 py-8 mt-20 text-center text-sm text-white/30">
+                <footer className="border-t border-white/10 py-8 mt-8 sm:mt-12 text-center text-sm text-white/30">
                     <p>Anonymous. No tracking. One vote per day.</p>
                 </footer>
             </div>

@@ -46,129 +46,140 @@ export default function Heatmap({ data }: { data: HeatmapData | null }) {
     const currentHour = new Date().getUTCHours();
 
     return (
-        <div className="space-y-12">
-            {/* Header - Big emotional statement */}
-            <div className="text-center space-y-4">
-                <div className="text-7xl sm:text-8xl animate-pulse">{dominantConfig.emoji}</div>
-                <h2 className="text-3xl sm:text-4xl font-bold">
-                    The world feels{" "}
-                    <span style={{ color: dominantConfig.color }}>
-                        {dominant.emotion}
-                    </span>
-                </h2>
-                <p className="text-white/50">
-                    {dominantPercent}% of {grandTotal.toLocaleString()} people today
-                </p>
-            </div>
+        <div className="space-y-8 sm:space-y-12">
+            {/* Responsive wrapper: world feels on top for desktop, bottom for mobile */}
+            <div className="flex flex-col-reverse lg:flex-col">
+                {/* Dominant Emotion Header - Appears FIRST on desktop, SECOND on mobile */}
+                <div className="text-center space-y-4 mt-8 lg:mt-0">
+                    <div className="text-6xl sm:text-8xl animate-pulse">
+                        {dominantConfig.emoji}
+                    </div>
+                    <h2 className="text-2xl sm:text-4xl font-bold">
+                        The world feels{" "}
+                        <span style={{ color: dominantConfig.color }}>
+                            {dominant.emotion}
+                        </span>
+                    </h2>
+                    <p className="text-white/50 text-sm sm:text-base">
+                        {dominantPercent}% of {grandTotal.toLocaleString()} people today
+                    </p>
+                </div>
 
-            {/* Emotion Flow - Horizontal timeline */}
-            <div className="space-y-6">
-                <h3 className="text-center text-lg text-white/70">
-                    Today's emotional journey
-                </h3>
+                {/* Timeline - Appears SECOND on desktop, FIRST on mobile */}
+                <div className="space-y-6">
 
-                {/* The actual full-width timeline */}
-                <div className="relative">
-                    <div className="flex h-32 sm:h-40 rounded-lg overflow-hidden border border-white/10 shadow-xl">
-                        {hours.map((hour) => {
-                            const hourNum = Number(hour);
-                            const isCurrent = hourNum === currentHour;
-                            const isHovered = hoveredHour === hourNum;
+                    <div className="relative">
+                        <div className="flex h-48 sm:h-40 rounded-lg overflow-hidden border border-white/10 shadow-xl">
+                            {hours.map((hour) => {
+                                const hourNum = Number(hour);
+                                const isCurrent = hourNum === currentHour;
+                                const isHovered = hoveredHour === hourNum;
 
-                            const emotionData = emotions.map((emotion) => ({
-                                emotion,
-                                count: data.hourly[hour][emotion] ?? 0,
-                            }));
+                                const emotionData = emotions.map((emotion) => ({
+                                    emotion,
+                                    count: data.hourly[hour][emotion] ?? 0,
+                                }));
 
-                            const hourTotal = emotionData.reduce((sum, e) => sum + e.count, 0);
+                                const hourTotal = emotionData.reduce((sum, e) => sum + e.count, 0);
 
+                                return (
+                                    <div
+                                        key={hour}
+                                        className="flex-1 relative flex flex-col-reverse group cursor-pointer"
+                                        onMouseEnter={() => setHoveredHour(hourNum)}
+                                        onMouseLeave={() => setHoveredHour(null)}
+                                    >
+                                        {isCurrent && (
+                                            <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-full z-10">
+                                                <div className="text-xs text-white/60 font-medium whitespace-nowrap mb-1">
+                                                    now
+                                                </div>
+                                                <div className="w-px h-3 bg-white/60 mx-auto" />
+                                            </div>
+                                        )}
+
+                                        {emotionData.map(({ emotion, count }) => {
+                                            if (count === 0) return null;
+                                            const config = emotionConfig[emotion as keyof typeof emotionConfig];
+                                            const heightPercent = hourTotal > 0 ? (count / hourTotal) * 100 : 0;
+
+                                            return (
+                                                <div
+                                                    key={emotion}
+                                                    className="transition-all duration-300"
+                                                    style={{
+                                                        height: `${heightPercent}%`,
+                                                        backgroundColor: config.color,
+                                                        opacity: isHovered ? 1 : 0.85,
+                                                    }}
+                                                />
+                                            );
+                                        })}
+
+                                        {isHovered && hourTotal > 0 && (
+                                            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-black/95 text-white px-3 py-2 rounded-lg text-xs z-20 pointer-events-none whitespace-nowrap">
+                                                <div className="font-medium mb-1">{hour}:00</div>
+                                                {emotionData
+                                                    .filter((e) => e.count > 0)
+                                                    .sort((a, b) => b.count - a.count)
+                                                    .map(({ emotion, count }) => {
+                                                        const config = emotionConfig[emotion as keyof typeof emotionConfig];
+                                                        const percent = Math.round((count / hourTotal) * 100);
+                                                        return (
+                                                            <div key={emotion} className="flex items-center gap-1.5 text-[10px]">
+                                                                <span>{config.emoji}</span>
+                                                                <span className="capitalize">{emotion}</span>
+                                                                <span className="text-white/60">{percent}%</span>
+                                                            </div>
+                                                        );
+                                                    })}
+                                                <div className="text-white/50 text-[10px] mt-1 pt-1 border-t border-white/20">
+                                                    {hourTotal} total votes
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {hourTotal === 0 && (
+                                            <div className="absolute inset-0 bg-white/5" />
+                                        )}
+                                    </div>
+                                );
+                            })}
+                        </div>
+
+                        <div className="flex justify-between mt-3 px-2 text-xs text-white/40">
+                            <span>Midnight</span>
+                            <span>Morning</span>
+                            <span>Noon</span>
+                            <span>Evening</span>
+                        </div>
+                    </div>
+                    {/* Subtle legend */}
+                    <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-xs text-white/40">
+                        {emotions.map((emotion) => {
+                            const config = emotionConfig[emotion as keyof typeof emotionConfig];
                             return (
-                                <div
-                                    key={hour}
-                                    className="flex-1 relative flex flex-col-reverse group cursor-pointer"
-                                    onMouseEnter={() => setHoveredHour(hourNum)}
-                                    onMouseLeave={() => setHoveredHour(null)}
-                                >
-                                    {isCurrent && (
-                                        <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-full z-10">
-                                            <div className="text-xs text-white/60 font-medium whitespace-nowrap mb-1">
-                                                now
-                                            </div>
-                                            <div className="w-px h-3 bg-white/60 mx-auto" />
-                                        </div>
-                                    )}
-
-                                    {/* Stacked bars */}
-                                    {emotionData.map(({ emotion, count }) => {
-                                        if (count === 0) return null;
-                                        const config = emotionConfig[emotion as keyof typeof emotionConfig];
-                                        const heightPercent = hourTotal > 0 ? (count / hourTotal) * 100 : 0;
-
-                                        return (
-                                            <div
-                                                key={emotion}
-                                                className="transition-all duration-300"
-                                                style={{
-                                                    height: `${heightPercent}%`,
-                                                    backgroundColor: config.color,
-                                                    opacity: isHovered ? 1 : 0.85,
-                                                }}
-                                            />
-                                        );
-                                    })}
-
-                                    {/* Tooltip */}
-                                    {isHovered && hourTotal > 0 && (
-                                        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-black/95 text-white px-3 py-2 rounded-lg text-xs z-20 pointer-events-none whitespace-nowrap">
-                                            <div className="font-medium mb-1">{hour}:00</div>
-                                            {emotionData
-                                                .filter(e => e.count > 0)
-                                                .sort((a, b) => b.count - a.count)
-                                                .map(({ emotion, count }) => {
-                                                    const config = emotionConfig[emotion as keyof typeof emotionConfig];
-                                                    const percent = Math.round((count / hourTotal) * 100);
-                                                    return (
-                                                        <div key={emotion} className="flex items-center gap-1.5 text-[10px]">
-                                                            <span>{config.emoji}</span>
-                                                            <span className="capitalize">{emotion}</span>
-                                                            <span className="text-white/60">{percent}%</span>
-                                                        </div>
-                                                    );
-                                                })}
-                                            <div className="text-white/50 text-[10px] mt-1 pt-1 border-t border-white/20">
-                                                {hourTotal} total votes
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    {hourTotal === 0 && (
-                                        <div className="absolute inset-0 bg-white/5" />
-                                    )}
+                                <div key={emotion} className="flex items-center gap-1.5">
+                                    <div
+                                        className="w-2 h-2 rounded-full"
+                                        style={{ backgroundColor: config.color }}
+                                    />
+                                    <span className="capitalize">{emotion}</span>
                                 </div>
                             );
                         })}
                     </div>
-
-                    {/* Hour labels below */}
-                    <div className="flex justify-between mt-3 px-2 text-xs text-white/40">
-                        <span>Midnight</span>
-                        <span>Morning</span>
-                        <span>Noon</span>
-                        <span>Evening</span>
-                    </div>
                 </div>
             </div>
-            {/* Legend - Top 3 emotions */}
+
+            {/* Top 3 Legend */}
             <div className="grid grid-cols-3 gap-4 max-w-xl mx-auto">
-                {totalByEmotion.slice(0, 3).map((item, index) => {
+                {totalByEmotion.slice(0, 3).map((item) => {
                     const config = emotionConfig[item.emotion as keyof typeof emotionConfig];
                     const percentage = Math.round((item.total / grandTotal) * 100);
 
                     return (
-                        <div
-                            key={item.emotion}
-                            className="text-center space-y-2"
-                        >
+                        <div key={item.emotion} className="text-center space-y-2">
                             <div className="text-3xl">{config.emoji}</div>
                             <div className="text-sm font-medium capitalize">{item.emotion}</div>
                             <div className="text-2xl font-bold" style={{ color: config.color }}>
@@ -178,22 +189,7 @@ export default function Heatmap({ data }: { data: HeatmapData | null }) {
                     );
                 })}
             </div>
-
-            {/* Subtle legend - all emotions */}
-            <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-xs text-white/40">
-                {emotions.map((emotion) => {
-                    const config = emotionConfig[emotion as keyof typeof emotionConfig];
-                    return (
-                        <div key={emotion} className="flex items-center gap-1.5">
-                            <div
-                                className="w-2 h-2 rounded-full"
-                                style={{ backgroundColor: config.color }}
-                            />
-                            <span className="capitalize">{emotion}</span>
-                        </div>
-                    );
-                })}
-            </div>
         </div>
     );
+
 }
