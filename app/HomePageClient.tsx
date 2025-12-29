@@ -4,16 +4,8 @@ import { useState } from "react";
 import { submitEmotion } from "./actions/submitEmotion";
 import EmotionButtons from "./components/EmotionButtons";
 import Heatmap from "./components/HeatMap";
-import { MoodSummary } from "./lib/moodSummary";
-
-type HomePageClientProps = {
-    initialMoodSummary?: MoodSummary[];
-};
-
-export default function HomePageClient({ initialMoodSummary }: HomePageClientProps) {
+export default function HomePageClient() {
     const [message, setMessage] = useState("");
-    const [selectedEmotion, setSelectedEmotion] = useState<string | null>(null);
-    const [moodSummary, setMoodSummary] = useState<MoodSummary[] | undefined>(initialMoodSummary);
     const handleSubmit = async (emotion: string) => {
         const result = await submitEmotion(emotion as any);
         if (result.ok) {
