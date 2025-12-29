@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import HomePageClient from "./HomePageClient";
 
-// /app/page.tsx
 const ogImageUrl = `/api/og-image?ts=${Date.now()}`;
 
 export const metadata: Metadata = {
@@ -25,7 +24,6 @@ export const metadata: Metadata = {
     locale: "en_US",
     type: "website",
   },
-
   twitter: {
     card: "summary_large_image",
     title: "Feels Aggregate – Live Global Mood Heatmap",
