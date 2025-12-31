@@ -11,7 +11,7 @@ export async function GET() {
 
     const now = new Date()
     const day = now.toISOString().slice(0, 10)
-    const hour = now.getHours()
+    const hour = now.getUTCHours()
 
     try {
         await prisma.$executeRawUnsafe(
