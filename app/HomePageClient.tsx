@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { type HeatmapData } from "./components/HeatMap";
 import Heatmap from "./components/HeatMap";
 import EmotionButtons from "./components/EmotionButtons";
+import { UTCTimer } from "./components/UTCTimer";
 
 export default function HomePageClient() {
     const [message, setMessage] = useState("");
@@ -101,11 +102,7 @@ export default function HomePageClient() {
                         <img src="/logo.png" alt="Feels Aggregate" className="h-8" />
                     </div>
                     <div className="text-sm text-white/50">
-                        {new Date().toLocaleDateString("en-US", {
-                            month: "short",
-                            day: "numeric",
-                            year: "numeric",
-                        })}
+                        <UTCTimer />
                     </div>
                 </div>
             </header>
