@@ -1,0 +1,8 @@
+{
+    "crons": [
+        {
+            "path": "/api/hourly-populate",
+            "schedule": "0 * * * *"
+        }
+    ]
+}
