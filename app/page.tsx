@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import HomePageClient from "./HomePageClient";
 
-const ogImageUrl = `/api/og-image?ts=${Date.now()}`;
+const ogImageUrl = `https://feels-aggregate.vercel.app/api/og-image?ts=${Date.now()}`;
 
 export const metadata: Metadata = {
   title: "Feels Aggregate – How is the world feeling right now?",
