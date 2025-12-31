@@ -12,6 +12,13 @@ export default function HomePageClient() {
     const [voted, setVoted] = useState(false);
     const [loadingVote, setLoadingVote] = useState(true);
 
+    // Populate 
+    useEffect(() => {
+        fetch("/api/hourly-populate", {
+            method: "GET",
+            keepalive: true,
+        }).catch(() => { })
+    }, [])
     // Fetch heatmap every minute
     const fetchHeatmap = async () => {
         try {
