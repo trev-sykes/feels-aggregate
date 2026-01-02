@@ -53,7 +53,7 @@ export default function HomePageClient() {
             }
         };
         fetchTodayVote();
-    }, []);
+    }, [heatmapData]);
 
     const handleSubmit = async (emotion: string) => {
         if (!heatmapData) return;
